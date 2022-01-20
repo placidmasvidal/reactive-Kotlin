@@ -3,9 +3,12 @@ package com.placidmasvidal.reactiveKotlin.controllers
 import com.placidmasvidal.reactiveKotlin.models.User
 import com.placidmasvidal.reactiveKotlin.repositories.UserRepository
 import com.placidmasvidal.reactiveKotlin.requests.UserCreateRequest
+import com.placidmasvidal.reactiveKotlin.requests.UserUpdateRequest
 import com.placidmasvidal.reactiveKotlin.responses.PagingResponse
 import com.placidmasvidal.reactiveKotlin.responses.UserCreateResponse
+import com.placidmasvidal.reactiveKotlin.responses.UserUpdateResponse
 import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.reactive.awaitFirstOrElse
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
@@ -65,5 +68,51 @@ class UserController {
         val list = userRepository.findAllUsers(limit, offset).collectList().awaitFirst()
         val total = userRepository.count().awaitFirst()
         return PagingResponse(total, list)
+    }
+
+    @PatchMapping("/{userId}")
+    suspend fun updateUser(
+        @PathVariable userId: Int,
+        @RequestBody @Valid userUpdateRequest: UserUpdateRequest
+    ): UserUpdateResponse {
+        val existingDBUser = userRepository.findById(userId).awaitFirstOrElse {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "User #$userId doesn't exist")
+        }
+
+        val duplicateUser = userRepository.findByEmail(userUpdateRequest.email).awaitFirstOrNull()
+        if (duplicateUser != null && duplicateUser.id != userId) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Duplicate user: user with email ${userUpdateRequest.email} already exists"
+            )
+        }
+
+        val updatedUser = try {
+            existingDBUser.email = userUpdateRequest.email
+            existingDBUser.firstName = userUpdateRequest.firstName ?: existingDBUser.firstName
+            existingDBUser.lastName = userUpdateRequest.lastName ?: existingDBUser.lastName
+            userRepository.save(existingDBUser).awaitFirst()
+        }catch (e: Exception){
+            throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to update user", e)
+        }
+
+        return UserUpdateResponse(
+            id = updatedUser.id,
+            email = updatedUser.email,
+            firstName = updatedUser.firstName,
+            lastName = updatedUser.lastName
+        )
+    }
+
+
+    @DeleteMapping("/{userId}")
+    suspend fun deleteUser(
+        @PathVariable userId: Int
+    ) {
+        val existingUser = userRepository.findById(userId).awaitFirstOrElse {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "User #$userId not found")
+        }
+        userRepository.delete(existingUser).subscribe()
+
     }
 }
