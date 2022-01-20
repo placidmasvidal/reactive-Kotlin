@@ -3,15 +3,14 @@ package com.placidmasvidal.reactiveKotlin.controllers
 import com.placidmasvidal.reactiveKotlin.models.User
 import com.placidmasvidal.reactiveKotlin.repositories.UserRepository
 import com.placidmasvidal.reactiveKotlin.requests.UserCreateRequest
+import com.placidmasvidal.reactiveKotlin.responses.PagingResponse
 import com.placidmasvidal.reactiveKotlin.responses.UserCreateResponse
+import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import java.lang.Exception
 import javax.validation.Valid
@@ -54,5 +53,17 @@ class UserController {
             firstName = createdUser.firstName,
             lastName = createdUser.lastName
         )
+    }
+
+    @GetMapping("")
+    suspend fun listUsers(
+        @RequestParam pageNo: Int = 1,
+        @RequestParam pageSize: Int = 10
+    ): PagingResponse<User> {
+        val limit = pageSize
+        val offset = (limit * pageNo) - limit
+        val list = userRepository.findAllUsers(limit, offset).collectList().awaitFirst()
+        val total = userRepository.count().awaitFirst()
+        return PagingResponse(total, list)
     }
 }
