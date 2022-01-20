@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import java.lang.Exception
 import javax.validation.Valid
+import io.swagger.v3.oas.annotations.Operation
 
 @RestController
 @RequestMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -25,6 +26,7 @@ class UserController {
     @Autowired
     lateinit var userRepository: UserRepository
 
+    @Operation(operationId = "createUser", summary = "Create user")
     @PostMapping
     suspend fun createUser(
         @RequestBody @Valid request: UserCreateRequest
@@ -58,6 +60,7 @@ class UserController {
         )
     }
 
+    @Operation(operationId = "listUsers", summary = "List users")
     @GetMapping("")
     suspend fun listUsers(
         @RequestParam pageNo: Int = 1,
@@ -70,6 +73,7 @@ class UserController {
         return PagingResponse(total, list)
     }
 
+    @Operation(operationId = "updateUser", summary = "Update user")
     @PatchMapping("/{userId}")
     suspend fun updateUser(
         @PathVariable userId: Int,
@@ -104,7 +108,7 @@ class UserController {
         )
     }
 
-
+    @Operation(operationId = "deleteUser", summary = "Delete user")
     @DeleteMapping("/{userId}")
     suspend fun deleteUser(
         @PathVariable userId: Int
