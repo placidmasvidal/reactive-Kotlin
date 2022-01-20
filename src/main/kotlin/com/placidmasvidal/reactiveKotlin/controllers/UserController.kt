@@ -8,6 +8,7 @@ import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -22,6 +23,7 @@ class UserController {
     @Autowired
     lateinit var userRepository: UserRepository
 
+    @PostMapping
     suspend fun createUser(
         @RequestBody @Valid request: UserCreateRequest
     ): UserCreateResponse {
